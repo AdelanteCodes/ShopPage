@@ -24,12 +24,6 @@ jobs:
           ref: main
           path: pdf-source
           persist-credentials: false
-      - uses: actions/checkout@v4
-        with:
-          repository: AdelanteCodes/AWB-Maker
-          ref: main
-          path: awb-source
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -42,9 +36,6 @@ jobs:
           node --test tests/*.test.mjs
           python scripts/check_browser_build.py
           python -m unittest discover -s tests -p 'test_*.py'
-      - name: Verify AWB Maker before publication
-        working-directory: awb-source
-        run: node --test tests/*.test.mjs
       - name: Assemble website
         shell: python
         run: |
@@ -54,16 +45,6 @@ jobs:
           shutil.copytree('pdf-source/pdf-viewer', '_site/pdf-viewer')
           revision = subprocess.check_output(['git', '-C', 'pdf-source', 'rev-parse', 'HEAD'], text=True).strip()
           Path('_site/pdf-viewer/source-revision.txt').write_text(revision + '\n')
-          awb_root = Path('awb-source')
-          for name in json.loads((awb_root / 'scripts/publish-files.json').read_text()):
-              relative = Path(name)
-              if relative.is_absolute() or '..' in relative.parts:
-                  raise ValueError('Invalid AWB distribution path')
-              target = Path('_site/awb-maker') / relative
-              target.parent.mkdir(parents=True, exist_ok=True)
-              shutil.copy2(awb_root / relative, target)
-          awb_revision = subprocess.check_output(['git', '-C', 'awb-source', 'rev-parse', 'HEAD'], text=True).strip()
-          Path('_site/awb-maker/source-revision.txt').write_text(awb_revision + '\n')
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
